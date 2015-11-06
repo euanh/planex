@@ -27,8 +27,8 @@ RPMBUILD_FLAGS ?= ${QUIET+--quiet} --define="_topdir $(TOPDIR)" --define="dist $
 CREATEREPO ?= createrepo
 CREATEREPO_FLAGS ?= ${QUIET+--quiet} --update
 
-BUILD_CONFIGDIR ?= $(TOPDIR)/mock
-BUILD_CONFIG ?= default.cfg
+BUILD_CONFIGDIR ?= /etc/mock
+BUILD_CONFIG ?= default
 
 BUILD ?= planex-build-mock
 BUILD_FLAGS ?= ${QUIET+--quiet} \
@@ -63,7 +63,6 @@ $(TOPDIR):
 	@mkdir -p $(TOPDIR)
 	@mkdir -p SPECS SOURCES
 	@ln -s ../SOURCES $(TOPDIR)/SOURCES
-	@ln -s ../mock $(TOPDIR)/mock
 	@mkdir $(TOPDIR)/RPMS
 	@mkdir $(TOPDIR)/SPECS
 	@ln -s $(TOPDIR)/RPMS RPMS
