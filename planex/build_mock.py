@@ -7,6 +7,7 @@ planex-cache: A caching wrapper around mock for building RPMs
 import argparse
 import logging
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -29,6 +30,9 @@ def parse_args_or_exit(argv=None):
     parser.add_argument(
         '--resultdir', default="/tmp/badger",
         help='path for resulting files to be put')
+    parser.add_argument(
+        '--outputdir', default=None,
+        help='Output directory')
     parser.add_argument(
         '-r', '--root', default="default",
         help='chroot name/config file name default: default')
@@ -55,6 +59,30 @@ def build_package(configdir, root, passthrough_args):
     return working_directory
 
 
+def augment_mock_cfg(configdir, root, outputdir):
+    """
+    Add the loopback repository to mock_cfg
+    """
+    augmented = tempfile.NamedTemporaryFile(suffix=".cfg")
+    with open(os.path.join(configdir, root)) as original:
+        yum_conf_re = re.compile(r"config_opts\[\s*['\"]yum.conf['\"]\s*\]")
+        for line in original:
+            augmented.write(line)
+            if yum_conf_re.match(line):
+                loopback_stanza = [
+                    "[mock]\n",
+                    "name=Mock loopback repository\n",
+                    "baseurl=file://%s\n" % os.path.abspath(outputdir),
+                    "gpgcheck=0\n",
+                    "priority=1\n",
+                    "enabled=1\n",
+                    "metadata_expire=0\n",
+                    "\n"]
+                augmented.file.writelines(loopback_stanza)
+        augmented.flush()
+    return augmented
+
+
 def main(argv):
     """
     Main function.  Parse spec file and iterate over its sources, downloading
@@ -70,8 +98,13 @@ def main(argv):
     if not os.path.isdir(resultdir):
         os.makedirs(resultdir)
 
-    build_output = build_package(intercepted_args.configdir,
-                                 intercepted_args.root, passthrough_args)
+    mock_cfg = augment_mock_cfg(intercepted_args.configdir,
+                                "%s.cfg" % intercepted_args.root,
+                                intercepted_args.outputdir)
+
+    configdir = os.path.dirname(mock_cfg.name)
+    configfile = os.path.splitext(os.path.basename(mock_cfg.name))[0]
+    build_output = build_package(configdir, configfile, passthrough_args)
 
     for cached_file in os.listdir(build_output):
         dest = os.path.join(resultdir, cached_file)

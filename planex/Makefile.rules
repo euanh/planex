@@ -34,6 +34,7 @@ BUILD ?= planex-build-mock
 BUILD_FLAGS ?= ${QUIET+--quiet} \
                --configdir=$(BUILD_CONFIGDIR) -r $(BUILD_CONFIG) --quiet \
                --resultdir=$(dir $@) --uniqueext=$(notdir $@) \
+               --outputdir=$(TOPDIR)/RPMS
                --disable-plugin=package_state
 
 DEPEND ?= planex-depend
