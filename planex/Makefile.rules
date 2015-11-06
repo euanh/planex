@@ -27,11 +27,14 @@ RPMBUILD_FLAGS ?= ${QUIET+--quiet} --define="_topdir $(TOPDIR)" --define="dist $
 CREATEREPO ?= createrepo
 CREATEREPO_FLAGS ?= ${QUIET+--quiet} --update
 
-MOCK ?= mock
-MOCK_FLAGS ?= ${QUIET+--quiet} \
-              --configdir=$(TOPDIR)/mock  \
-              --resultdir=$(dir $@) --uniqueext=$(notdir $@) \
-              --disable-plugin=package_state
+BUILD_CONFIGDIR ?= $(TOPDIR)/mock
+BUILD_CONFIG ?= default.cfg
+
+BUILD ?= planex-build-mock
+BUILD_FLAGS ?= ${QUIET+--quiet} \
+               --configdir=$(BUILD_CONFIGDIR) -r $(BUILD_CONFIG) --quiet \
+               --resultdir=$(dir $@) --uniqueext=$(notdir $@) \
+               --disable-plugin=package_state
 
 DEPEND ?= planex-depend
 DEPEND_FLAGS ?= --define="dist $(DIST)" --define="_topdir $(TOPDIR)" \
@@ -127,8 +130,8 @@ $(TOPDIR)/SPECS/%.spec: SPECS/%.lnk SOURCES/%/patches.tar
 # We take an exclusive lock around createrepo to ensure that no mock
 # runs at the same time as a createrepo is updating the repo metadata.
 %.rpm:
-	@echo [MOCK] $<
-	$(AT)flock --shared --timeout 300 ./$(TOPDIR)/RPMS $(MOCK) $(MOCK_FLAGS) --rebuild $<
+	@echo [BUILD] $<
+	$(AT)flock --shared --timeout 300 ./$(TOPDIR)/RPMS $(BUILD) $(BUILD_FLAGS) --rebuild $<
 	@echo [CREATEREPO] $<
 	$(AT)flock --exclusive --timeout 300 ./$(TOPDIR)/RPMS $(CREATEREPO) $(CREATEREPO_FLAGS) ./$(TOPDIR)/RPMS
 
