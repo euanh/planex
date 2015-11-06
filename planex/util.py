@@ -80,8 +80,11 @@ def run(cmd, check=True, env=None, inputtext=None, logfiles=None):
         logging.error("stdout: %s", stdout)
         logging.error("stderr: %s", stderr)
         for log_path in logfiles:
-            with open(log_path) as log_file:
-                logging.error("%s:\n%s", log_path, log_file.read())
+            try:
+                with open(log_path) as log_file:
+                    logging.error("%s:\n%s", log_path, log_file.read())
+            except IOError as ioe:
+                logging.error("%s", ioe)
         raise Exception
 
     return {"stdout": stdout, "stderr": stderr, "rc": proc.returncode}
