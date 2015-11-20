@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -54,7 +55,9 @@ def build_package(configdir, root, passthrough_args):
 
     logfiles = [os.path.join(working_directory, "root.log"),
                 os.path.join(working_directory, "build.log")]
-    util.run(cmd, logfiles=logfiles)
+    status = subprocess.call(cmd)
+    if status != 0:
+        exit(status)
 
     return working_directory
 
