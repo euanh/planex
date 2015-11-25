@@ -3,7 +3,6 @@
 # Configuration variables
 ############################################################################
 
-DIST ?= .el6
 TOPDIR ?= _build
 DEPS = $(TOPDIR)/deps
 PINSFILE = pins
@@ -151,6 +150,12 @@ $(TOPDIR)/SPECS/%.spec: SPECS/%.lnk $(TOPDIR)/SOURCES/%/patches.tar
 # Dependency build rules
 ############################################################################
 
+# Extract the value of %{dist} from the chroot
+$(TOPDIR)/dist: $(TOPDIR)
+	$(MOCK) $(MOCK_FLAGS) --shell 'rpm --eval "DIST ?= %{dist}"' > $@
+-include $(TOPDIR)/dist
+
+
 # Generate all the pinning rules
 .DELETE_ON_ERROR: $(PINDEPS)
 $(PINDEPS): $(PINSFILE)
@@ -172,5 +177,6 @@ $(DEPS): $(TOPDIR) $(wildcard $(PINSFILE) $(PINSDIR)/*.spec) \
 	$(AT)$(DEPEND) $(DEPEND_FLAGS) SPECS/*.lnk $(TOPDIR)/SPECS/*.spec > $@
 
 include $(DEPS)
+
 
 # vim:ft=make:
