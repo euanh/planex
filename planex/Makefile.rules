@@ -6,6 +6,7 @@
 DIST ?= .el6
 TOPDIR ?= _build
 DEPS = $(TOPDIR)/deps
+PINDEPS = $(TOPDIR)/pindeps
 PINSDIR = PINS
 RPM_DEFINES ?= --define="_topdir $(TOPDIR)" \
                --define="dist $(DIST)" \
@@ -32,6 +33,9 @@ MOCK ?= planex-build-mock
 MOCK_FLAGS ?= ${QUIET+--quiet} \
               --configdir=$(TOPDIR)/mock \
               --resultdir=$(dir $@)
+
+PINDEP ?= planex-pindep
+PINDEP_FLAGS ?= --pins-dir $(PINSDIR) $(PINDEP_EXTRA_FLAGS)
 
 DEPEND ?= planex-depend
 DEPEND_FLAGS ?= $(RPM_DEFINES) --pins-dir $(PINSDIR) $(DEPEND_EXTRA_FLAGS)
@@ -155,6 +159,11 @@ $(TOPDIR)/SPECS/%.spec: SPECS/%.lnk $(TOPDIR)/SOURCES/%/patches.tar
 ############################################################################
 # Dependency build rules
 ############################################################################
+
+.DELETE_ON_ERROR: $(PINDEPS)
+$(PINDEPS): $(TOPDIR) $(wildcard PINS/*.pin) $(wildcard SPECS/*.lnk) $(wildcard SPECS/*.spec)
+	$(AT)$(PINDEP) $(PINDEP_FLAGS) $(wildcard SPECS/*) > $@
+include $(PINDEPS)
 
 # Generate dependency rules linking spec files to tarballs, source
 # packages and binary packages.   planex-depend generates rules suitable
