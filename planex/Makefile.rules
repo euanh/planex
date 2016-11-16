@@ -165,13 +165,19 @@ include $(PINDEPS)
 # for RPM or Debian builds depending on the host distribution.
 # If dependency generation fails, the deps file is deleted to avoid
 # problems with empty, incomplete or corrupt deps.   
-.DELETE_ON_ERROR: $(DEPS)
-$(DEPS): $(TOPDIR) \
-		$(patsubst SPECS/%.spec,$(TOPDIR)/SPECS/%.spec,$(wildcard SPECS/*.spec)) \
-		$(patsubst SPECS/%.lnk,$(TOPDIR)/SPECS/%.spec,$(wildcard SPECS/*.lnk))
-	@echo Updating dependencies...
-	$(AT)$(DEPEND) $(DEPEND_FLAGS) SPECS/*.lnk $(TOPDIR)/SPECS/*.spec > $@
 
+
+# PINDEPS will generate the deps for DEPS
+# On the first run through, deps will be generated empty
+# and pindeps will be generated.   On the next run, the 
+# deps for deps will be read in from pindeps, so deps will
+# be generated correctly.  deps will change, so it will be re-read
+# and we will go around again.   this time the proper deps will
+# be read in, nothing will change on rebuild and we will be able to build
+.DELETE_ON_ERROR: $(DEPS)
+$(DEPS): $(TOPDIR)
+	@echo Updating dependencies...
+	$(AT)$(DEPEND) $(DEPEND_FLAGS) $^ > $@
 include $(DEPS)
 
 # vim:ft=make:
