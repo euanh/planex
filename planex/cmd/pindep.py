@@ -55,12 +55,18 @@ def main(argv=None):
                           pin)
         print "%s: %s" % (os.path.join("_build/SOURCES", pkgname(pin), "patches.tar"),
                           os.path.join("SPECS", pkgname(pin) + ".spec"))
+        print "_build/deps: %s.spec" % os.path.join("_build/SPECS", pkgname(pin))
 
     for link in links:
         if pkgname(link) not in [pkgname(pin) for pin in pins]:
             print "%s.spec: %s" % (os.path.join("_build/SPECS", pkgname(link)),
                                    link)
+            print "_build/deps: %s.spec" % os.path.join("_build/SPECS",
+                                                        pkgname(link))
+            print "_build/deps: %s" % link
 
     for spec in specs:
         print "%s.spec: %s" % (os.path.join("_build/SPECS", pkgname(spec)),
                                spec)
+        print "_build/deps: %s.spec" % os.path.join("_build/SPECS",
+                                                    pkgname(spec))
