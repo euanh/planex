@@ -108,6 +108,8 @@ MANIFESTS/%.json:
 $(TOPDIR)/SOURCES/%/patches.tar: SPECS/%.lnk
 	$(AT)$(FETCH) $(FETCH_FLAGS) $< $@
 
+$(TOPDIR)/SOURCES/%/patches.tar: PINS/%.pin
+	planex-pin $< $@
 
 ############################################################################
 # Patch extraction rules
