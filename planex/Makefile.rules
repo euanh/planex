@@ -35,7 +35,7 @@ MOCK_FLAGS ?= ${QUIET+--quiet} \
               --resultdir=$(dir $@)
 
 PINDEP ?= planex-pindep
-PINDEP_FLAGS ?= --pins-dir $(PINSDIR) $(PINDEP_EXTRA_FLAGS)
+PINDEP_FLAGS ?= $(RPM_DEFINES) --pins-dir $(PINSDIR) $(PINDEP_EXTRA_FLAGS)
 
 DEPEND ?= planex-depend
 DEPEND_FLAGS ?= $(RPM_DEFINES) --pins-dir $(PINSDIR) $(DEPEND_EXTRA_FLAGS)
