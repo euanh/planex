@@ -19,6 +19,9 @@ def parse_args_or_exit(argv=None):
         description="Generate Makefile dependencies from RPM Spec files")
     add_common_parser_options(parser)
     parser.add_argument("specs", metavar="SPEC", nargs="+", help="spec file")
+    parser.add_argument(
+        "-D", "--define", default=[], action="append",
+        help="--define='MACRO EXPR' define MACRO with value EXPR")
     parser.add_argument("-P", "--pins-dir", default="PINS",
                         help="Directory containing pin overlays")
     argcomplete.autocomplete(parser)
@@ -39,6 +42,13 @@ def main(argv=None):
 
     setup_sigint_handler()
     args = parse_args_or_exit(argv)
+
+    macros = [tuple(macro.split(' ', 1)) for macro in args.define]
+
+    if any(len(macro) != 2 for macro in macros):
+        _err = [macro for macro in macros if len(macro) != 2]
+        print "error: malformed macro passed to --define: %r" % _err
+        sys.exit(1)
 
     # Should be a path variable or multiple overriding args
     pins = []
