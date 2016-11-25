@@ -29,6 +29,31 @@ def srpmdir():
     return rpm.expandMacro('%_srcrpmdir')
 
 
+def specdir(*path):
+    """Return the expanded value of the RPM %_specdir macro"""
+    return os.path.join(rpm.expandMacro('%_specdir'), *path)
+
+
+def topdir(*path):
+    """Return the expanded value of the RPM %_topdir macro"""
+    return os.path.join(rpm.expandMacro('%_topdir'), *path)
+
+
+def sourcedir(*path):
+    """Return the expanded value of the RPM %_sourcedir macro"""
+    return os.path.join(rpm.expandMacro('%_sourcedir'), *path)
+
+
+def add_macro(key, value):
+    """Add macro definition"""
+    return rpm.addMacro(key, value)
+
+
+def expand_macro(expr):
+    """Expand macros in expr"""
+    return rpm.expandMacro(expr)
+
+
 def flatten(lst):
     """Flatten a list of lists"""
     return sum(lst, [])

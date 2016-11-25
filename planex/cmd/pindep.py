@@ -2,11 +2,15 @@
 planex-pindep: Generate Makefile-format dependencies for links and pins
 """
 
+from collections import OrderedDict
 import argparse
 import glob
 import os
+import sys
 
 import argcomplete
+from planex.spec import add_macro, rpm_macros, append_macros
+from planex.spec import specdir, sourcedir, topdir
 from planex.util import add_common_parser_options
 from planex.util import setup_sigint_handler
 
@@ -50,7 +54,11 @@ def main(argv=None):
         print "error: malformed macro passed to --define: %r" % _err
         sys.exit(1)
 
-    # Should be a path variable or multiple overriding args
+    # _topdir defaults to $HOME/rpmbuild
+    # If present, it needs to be applied once at the beginning
+    if '_topdir' in macros:
+        add_macro('_topdir', macros['_topdir'])
+
     pins = []
     if args.pins_dir:
         pins_glob = os.path.join(args.pins_dir, "*.pin")
@@ -60,23 +68,24 @@ def main(argv=None):
     links = [arg for arg in args.specs if arg.endswith(".lnk")]
 
     for pin in pins:
-        print "%s.spec: %s" % (os.path.join("_build/SPECS", pkgname(pin)), pin)
-        print "%s: %s" % (os.path.join("_build/SOURCES", pkgname(pin), "patches.tar"),
-                          pin)
-        print "%s: %s" % (os.path.join("_build/SOURCES", pkgname(pin), "patches.tar"),
-                          os.path.join("SPECS", pkgname(pin) + ".spec"))
-        print "_build/deps: %s.spec" % os.path.join("_build/SPECS", pkgname(pin))
+        local_macros = OrderedDict([
+            ('name', pkgname(pin)),
+        ])
+        with rpm_macros(append_macros(OrderedDict(macros), local_macros)):
+            print "%s.spec: %s" % (specdir(pkgname(pin)), pin)
+            print "%s: %s" % (sourcedir("patches.tar"), pin)
+            print "%s: %s" % (sourcedir("patches.tar"),
+                              os.path.join("SPECS", pkgname(pin) + ".spec"))
+            print "%s: %s.spec" % (topdir("deps"), specdir(pkgname(pin)))
 
     for link in links:
-        if pkgname(link) not in [pkgname(pin) for pin in pins]:
-            print "%s.spec: %s" % (os.path.join("_build/SPECS", pkgname(link)),
-                                   link)
-            print "_build/deps: %s.spec" % os.path.join("_build/SPECS",
-                                                        pkgname(link))
-            print "_build/deps: %s" % link
+        with rpm_macros(OrderedDict(macros)):
+            if pkgname(link) not in [pkgname(pin) for pin in pins]:
+                print "%s.spec: %s" % (specdir(pkgname(link)), link)
+                print "%s: %s.spec" % (topdir("deps"), specdir(pkgname(link)))
+                print "%s: %s" % (topdir("deps"), link)
 
     for spec in specs:
-        print "%s.spec: %s" % (os.path.join("_build/SPECS", pkgname(spec)),
-                               spec)
-        print "_build/deps: %s.spec" % os.path.join("_build/SPECS",
-                                                    pkgname(spec))
+        with rpm_macros(OrderedDict(macros)):
+            print "%s.spec: %s" % (specdir(pkgname(spec)), spec)
+            print "%s: %s.spec" % (topdir("deps"), specdir(pkgname(spec)))
