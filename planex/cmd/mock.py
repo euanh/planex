@@ -102,6 +102,7 @@ def insert_loopback_repo(config_in_path, config_out_path, repo_path):
                     config_out.write("priority=1\n")
                     config_out.write("enabled=1\n")
                     config_out.write("metadata_expire=0\n")
+                    config_out.write("keepcache=0\n")
                     config_out.write("\n")
     shutil.copystat(config_in_path, config_out_path)
 
