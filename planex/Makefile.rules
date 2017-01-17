@@ -167,7 +167,7 @@ $(TOPDIR)/SPECS/%.spec: SPECS/%.lnk $(TOPDIR)/SOURCES/%/patches.tar
 # to find and install it.
 %.rpm:
 	@echo [MOCK] $<
-	$(AT)$(MOCK) $(MOCK_FLAGS) --rebuild $<
+	$(AT)$(MOCK) $(MOCK_FLAGS) --rebuild $< 2>&1 | ts "%s (mock $<)"
 
 
 ############################################################################
