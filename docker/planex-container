@@ -15,7 +15,7 @@ docker pull $PLANEX_CONTAINER
 docker run \
   --cap-add=SYS_ADMIN \
   --rm -i -t \
-  -v ${PWD}/_obj/var/cache/mock:/var/cache/mock \
-  -v ${PWD}/_obj/var/cache/yum:/var/cache/yum \
-  -v ${PWD}:/build \
+  -v ${PWD}/_obj/var/cache/mock:/var/cache/mock:Z \
+  -v ${PWD}/_obj/var/cache/yum:/var/cache/yum:Z \
+  -v ${PWD}:/build:Z \
   $PLANEX_CONTAINER "$*"
