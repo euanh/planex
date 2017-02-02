@@ -13,7 +13,7 @@ docker pull $PLANEX_CONTAINER
 # Run the container, mounting _obj and the current specs 
 # This should be run from the root of the specfile directory
 docker run \
-  --privileged \
+  --cap-add=SYS_ADMIN \
   --rm -i -t \
   -v ${PWD}/_obj/var/cache/mock:/var/cache/mock \
   -v ${PWD}/_obj/var/cache/yum:/var/cache/yum \
