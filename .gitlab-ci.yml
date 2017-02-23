@@ -1,5 +1,5 @@
 before_script:
-  - dnf -y install python-pep8 pylint python-nose python-argcomplete
+  - dnf -y install python-rpm python-requests python-pycurl python-pep8 pylint python-nose python-argcomplete python-mock
 
 basic-tests:
   script:
