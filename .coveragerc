@@ -4,7 +4,7 @@ include = planex*
 source = planex
 
 [xml]
-show_missing = True
+#show_missing = True
 
 [report]
 show_missing = True
