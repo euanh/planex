@@ -1,6 +1,10 @@
 before_script:
   - dnf -y install python-rpm python-requests python-pycurl python-pep8 pylint python-nose python-coverage python-argcomplete python-mock
 
+stages:
+  - test
+  - build
+
 pep8:
   stage: test
   script:
@@ -14,4 +18,36 @@ pylint:
 nosetests:
   stage: test
   script:
-    - nosetests --with-coverage --cover-erase --cover-inclusive
+    - nosetests --with-coverage --cover-erase --cover-inclusive 
+
+.job_template: &mock_build
+  image: fedora:25
+  tags:
+    - privileged
+  stage: build
+  script:
+    - dnf -y install rpm-build mock make git createrepo
+    - python setup.py build
+    - python setup.py install
+    - . make-rpmbuild.sh
+    - make planex.srpm
+    - make planex
+  artifacts:
+    paths:
+      - rpmbuild/_build/RPMS/noarch/planex*.rpm
+    expire_in: 1 week
+
+fedora-24-x86_64:
+  <<: *mock_build
+  variables:
+    MOCK_ROOT: fedora-24-x86_64
+    
+fedora-25-x86_64:
+  <<: *mock_build
+  variables:
+    MOCK_ROOT: fedora-25-x86_64
+      
+epel-7-x86_64:
+  <<: *mock_build
+  variables:
+    MOCK_ROOT: epel-7-x86_64
