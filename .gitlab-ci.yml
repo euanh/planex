@@ -1,5 +1,5 @@
 before_script:
-  - yum -y install python-pep8 pylint python-nose python-argcomplete
+  - dnf -y install python-pep8 pylint python-nose python-argcomplete
 
 basic-tests:
   script:
