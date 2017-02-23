@@ -1,8 +1,17 @@
 before_script:
   - dnf -y install python-rpm python-requests python-pycurl python-pep8 pylint python-nose python-coverage python-argcomplete python-mock
 
-basic-tests:
+pep8:
+  stage: test
   script:
     - pep8 --show-source --show-pep8 setup.py planex tests
+
+pylint:
+  stage: test
+  script:
     - pylint setup.py planex
+
+nosetests:
+  stage: test
+  script:
     - nosetests --with-coverage --cover-erase --cover-inclusive
