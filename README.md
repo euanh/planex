@@ -1,4 +1,4 @@
-# Planex [![Build Status](https://travis-ci.org/xenserver/planex.svg?branch=master)](https://travis-ci.org/xenserver/planex)
+# Planex [![build status](http://gitlab.euanh/euanh/planex/badges/master/build.svg)](http://gitlab.euanh/euanh/planex/commits/master) [![coverage report](http://gitlab.euanh/euanh/planex/badges/master/coverage.svg)](http://gitlab.euanh/euanh/planex/commits/master)
 
 Planex is a toolkit for building collections of interdependent RPMs.  The main tools are:
 
