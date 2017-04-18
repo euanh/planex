@@ -2,14 +2,16 @@
 planex-clone: Checkout sources referred to by a pin file
 """
 
-from string import Template
-import argparse
 from os import symlink
 from os.path import basename, dirname, join, relpath
+from string import Template
+import argparse
 import subprocess
+import urlparse
 
-import git
 from planex.link import Link
+from planex.spec import Spec
+import git
 import planex.util as util
 
 
@@ -129,9 +131,17 @@ def main(argv=None):
                 util.makedirs(args.repos)
                 pq_repo = clone(pin.url, args.repos, pin.commitish)
 
+
                 if pin.base is not None:
-                    print "Cloning %s" % pin.base
-                    base_repo = clone(pin.base, args.repos, pin.base_commitish)
+                    base_commitish = pin.base_commitish
+                    if not base_commitish:
+                        spec = Spec(join(pq_repo.working_dir, pin.specfile),
+                                    check_package_name=False)
+                        source_url = urlparse.urlparse(spec.source_urls()[0])
+                        base_commitish = urlparse.parse_qs(source_url.query)['at'][0]
+
+                    print "Cloning %s at %s" % (pin.base, base_commitish)
+                    base_repo = clone(pin.base, args.repos, base_commitish)
                     apply_patchqueue(base_repo, pq_repo, pin.patchqueue)
 
             except git.GitCommandError as gce:
