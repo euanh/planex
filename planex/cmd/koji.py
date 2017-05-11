@@ -77,18 +77,27 @@ def pty_check_call(cmd):
         raise subprocess.CalledProcessError(returncode, cmd)
 
 
-def koji(args, resultdir, *extra_params):
+def koji(args, resultdir, root, *extra_params):
     """
     Return koji command line and arguments
     """
     util.makedirs(resultdir)
     # XXX Should compare the srpm from koji with ours
+    tmpdir = tempfile.mkdtemp(prefix="px-koji-")
     cmd = ['koji', 'download-build', os.path.basename(extra_params[0])]
-    ret = subprocess.call(cmd, cwd=resultdir)
+    # XXX should download to a tmpdir, copy to resultdir and update timestamps
+    ret = subprocess.call(cmd, cwd=tmpdir)
     if ret == 0:
+       names = os.listdir(tmpdir)
+       for name in names:
+           srcname = os.path.join(tmpdir, name)
+           dstname = os.path.join(resultdir, name)
+           shutil.move(srcname, dstname)
+           os.utime(dstname, None)
+       shutil.rmtree(tmpdir)
        return
 
-    cmd = ['koji', 'build', 'dist-falcon', extra_params[0]]
+    cmd = ['koji', 'build', root, extra_params[0]]
     ret = subprocess.call(cmd)
     if ret != 0:
        sys.exit(1)
@@ -98,6 +107,10 @@ def koji(args, resultdir, *extra_params):
     if ret != 0:
        sys.exit(1)
      
+    cmd = ['koji', 'regen-repo', '--target', root]
+    ret = subprocess.call(cmd)
+    if ret != 0:
+       sys.exit(1)
 
 
 def main(argv=None):
@@ -108,7 +121,7 @@ def main(argv=None):
     args = parse_args_or_exit(argv)
 
     try:
-        koji(args, args.resultdir, *args.srpms)
+        koji(args, args.resultdir, args.root, *args.srpms)
 
     except subprocess.CalledProcessError as cpe:
         sys.exit(cpe.returncode)
