@@ -53,14 +53,14 @@ def parse_args_or_exit(argv=None):
     return parsed_args
 
 
-def rpmbuild(args, tmpdir, specfile):
+def rpmbuild(tmpdir, specfile, quiet=False, defines=[]):
     """
     Run rpmbuild on working directory
     """
     cmd = ['rpmbuild']
-    if args.quiet:
+    if quiet:
         cmd.append('--quiet')
-    for define in args.define:
+    for define in defines:
         cmd.append('--define')
         cmd.append(define)
     cmd.append('--define')
@@ -183,7 +183,7 @@ def main(argv=None):
     try:
         specfile = populate_working_directory(tmpdir, args.spec, args.link,
                                               args.sources, args.patchqueue)
-        sys.exit(rpmbuild(args, tmpdir, specfile))
+        sys.exit(rpmbuild(tmpdir, specfile, args.quiet, args.defines))
 
     except (tarfile.TarError, tarfile.ReadError) as exc:
         print "Error when extracting patchqueue from tarfile"
