@@ -53,10 +53,13 @@ def parse_args_or_exit(argv=None):
     return parsed_args
 
 
-def rpmbuild(tmpdir, specfile, quiet=False, defines=[]):
+def rpmbuild(tmpdir, specfile, quiet=False, defines=None):
     """
     Run rpmbuild on working directory
     """
+    if defines is None:
+        defines = []
+
     cmd = ['rpmbuild']
     if quiet:
         cmd.append('--quiet')
