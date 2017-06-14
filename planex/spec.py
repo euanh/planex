@@ -150,6 +150,12 @@ class Spec(object):
         """Return the URLs from which the sources can be downloaded"""
         return [source for (source, _, _) in reversed(self.spec.sources)]
 
+    def patch_urls(self):
+        """Return the URLs from which the patches can be downloaded"""
+        patch_urls = [urlparse.urlparse(url) for (url, _, sourcetype)
+                      in self.spec.sources if sourcetype == 2]
+        return [url.path for url in patch_urls if url.netloc == '']
+
     def expand_macro(self, macro):
         """Return the value of macro, expanded in the package's context"""
         hdr = self.spec.sourceHeader
