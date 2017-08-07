@@ -2,3 +2,4 @@ argcomplete
 argparse
 gitpython
 requests
+pycurl
