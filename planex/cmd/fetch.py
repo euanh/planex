@@ -157,7 +157,7 @@ def parse_args_or_exit(argv=None):
     parser = argparse.ArgumentParser(description='Download package sources')
     add_common_parser_options(parser)
     parser.add_argument('spec_or_link', help='RPM Spec or link file')
-    parser.add_argument("sources", metavar="SOURCE", nargs="+",
+    parser.add_argument("source", metavar="SOURCE",
                         help="Source file to fetch")
     parser.add_argument('--retries', '-r',
                         help='Number of times to retry a failed download',
@@ -187,45 +187,44 @@ def fetch_sources(args):
                             defines=args.define)
 
     try:
-        sources = [url_for_source(spec, source) for source in args.sources]
+        path, url = url_for_source(spec, args.source)
     except KeyError as exn:
         sys.exit("%s: No source corresponding to %s" % (sys.argv[0], exn))
 
-    for path, url in sources:
-        check_supported_url(url)
-        if url.scheme in SUPPORTED_URL_SCHEMES:
-            if url.scheme != "file" and args.mirror:
-                if not urlparse.urlparse(args.mirror).scheme:
-                    args.mirror = "file://" + args.mirror
-                mpath = os.path.join(args.mirror, os.path.basename(url.path))
-                url = urlparse.urlparse(mpath)
+    check_supported_url(url)
+    if url.scheme in SUPPORTED_URL_SCHEMES:
+        if url.scheme != "file" and args.mirror:
+            if not urlparse.urlparse(args.mirror).scheme:
+                args.mirror = "file://" + args.mirror
+            mpath = os.path.join(args.mirror, os.path.basename(url.path))
+            url = urlparse.urlparse(mpath)
 
-            try:
-                fetch_http(url, path, args.retries + 1)
+        try:
+            fetch_http(url, path, args.retries + 1)
 
-            except pycurl.error as exn:
-                # Curl download failed
-                sys.exit("%s: Failed to fetch %s: %s" %
-                         (sys.argv[0], urlparse.urlunparse(url), exn.args[1]))
+        except pycurl.error as exn:
+            # Curl download failed
+            sys.exit("%s: Failed to fetch %s: %s" %
+                     (sys.argv[0], urlparse.urlunparse(url), exn.args[1]))
 
-            except IOError as exn:
-                # IO error saving source file
-                sys.exit("%s: %s: %s" %
-                         (sys.argv[0], exn.strerror, exn.filename))
+        except IOError as exn:
+            # IO error saving source file
+            sys.exit("%s: %s: %s" %
+                     (sys.argv[0], exn.strerror, exn.filename))
 
-        elif url.scheme == '' and os.path.dirname(url.path) == '':
-            if not os.path.exists(path):
-                sys.exit("%s: Source not found: %s" % (sys.argv[0], path))
+    elif url.scheme == '' and os.path.dirname(url.path) == '':
+        if not os.path.exists(path):
+            sys.exit("%s: Source not found: %s" % (sys.argv[0], path))
 
-            # Source file is pre-populated in the SOURCES directory (part of
-            # the repository - probably a patch or local include).   Update
-            # its timestamp to placate make, but don't try to download it.
-            logging.debug("Refreshing timestamp for local source %s", path)
-            os.utime(path, None)
+        # Source file is pre-populated in the SOURCES directory (part of
+        # the repository - probably a patch or local include).   Update
+        # its timestamp to placate make, but don't try to download it.
+        logging.debug("Refreshing timestamp for local source %s", path)
+        os.utime(path, None)
 
-        else:
-            sys.exit("%s: Unsupported url scheme %s" %
-                     (sys.argv[0], url.scheme))
+    else:
+        sys.exit("%s: Unsupported url scheme %s" %
+                 (sys.argv[0], url.scheme))
 
 
 def fetch_via_link(args):
@@ -236,7 +235,7 @@ def fetch_via_link(args):
 
     url = urlparse.urlparse(str(link.url))
     try:
-        fetch_http(url, args.sources[0], args.retries + 1)
+        fetch_http(url, args.source, args.retries + 1)
 
     except pycurl.error as exn:
         # Curl download failed
