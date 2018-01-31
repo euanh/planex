@@ -150,13 +150,15 @@ def extract_commit(source, manifests):
 def extract_tarball_patches(tmpdir, spec, tarball, sources, patches):
     """ Extract a set of patches from a tarball """
     if sources is not None:
-        for source in spec.local_sources():
-            path = os.path.join(sources, source)
-            tarball.extract(path, tmpdir)
+        for source in spec.sources():
+            if source.is_local() and source.is_source():
+                path = os.path.join(sources, source.url())
+                tarball.extract(path, tmpdir)
     if patches is not None:
-        for patch in spec.local_patches():
-            path = os.path.join(patches, patch)
-            tarball.extract(path, tmpdir)
+        for source in spec.sources():
+            if source.is_local() and source.is_patch():
+                path = os.path.join(patches, source.url())
+                tarball.extract(path, tmpdir)
 
 
 def extract_v2_patches(tmpdir, spec, tmp_specfile, link, patchdata):

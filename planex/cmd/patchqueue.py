@@ -63,16 +63,18 @@ def assemble_extra_sources(tmpdir, repo, spec, link):
     Assemble the non-patchqueue sources in the working directory.
     """
     if link.sources is not None:
-        for source in spec.local_sources():
-            source_path = os.path.join(repo, link.sources, source)
-            dest_path = os.path.join(link.sources, source)
-            copy_to_tmpdir(tmpdir, source_path, dest_path)
+        for source in spec.sources():
+            if source.is_source() and source.is_local():
+                source_path = os.path.join(repo, link.sources, source.url())
+                dest_path = os.path.join(link.sources, source.url())
+                copy_to_tmpdir(tmpdir, source_path, dest_path)
 
     if link.patches is not None:
-        for patch in spec.local_patches():
-            source_path = os.path.join(repo, link.patches, patch)
-            dest_path = os.path.join(tmpdir, link.patches, patch)
-            copy_to_tmpdir(tmpdir, source_path, dest_path)
+        for source in spec.sources():
+            if source.is_patch() and source.is_local():
+                source_path = os.path.join(repo, link.patches, source.url())
+                dest_path = os.path.join(tmpdir, link.patches, source.url())
+                copy_to_tmpdir(tmpdir, source_path, dest_path)
 
 
 def main(argv=None):

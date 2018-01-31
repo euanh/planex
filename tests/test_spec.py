@@ -48,7 +48,7 @@ class RpmTests(unittest.TestCase):
     def test_sources(self):
         """Package source paths and URLs are correct"""
         self.assertItemsEqual(
-            self.spec.sources(),
+            [(source.path(), source.url()) for source in self.spec.sources()],
             [("./SOURCES/ocaml-cohttp/ocaml-cohttp-0.9.8.tar.gz",
               "https://github.com/mirage/ocaml-cohttp/archive/"
               "ocaml-cohttp-0.9.8/ocaml-cohttp-0.9.8.tar.gz"),
@@ -62,15 +62,18 @@ class RpmTests(unittest.TestCase):
     def test_source(self):
         """URLs for individual sources are correct"""
         self.assertEqual(
-            self.spec.source("path/to/ocaml-cohttp-0.9.8.tar.gz"),
+            (self.spec.source("path/to/ocaml-cohttp-0.9.8.tar.gz").path(),
+             self.spec.source("path/to/ocaml-cohttp-0.9.8.tar.gz").url()),
             ("./SOURCES/ocaml-cohttp/ocaml-cohttp-0.9.8.tar.gz",
              "https://github.com/mirage/ocaml-cohttp/archive/"
              "ocaml-cohttp-0.9.8/ocaml-cohttp-0.9.8.tar.gz"))
         self.assertEqual(
-            self.spec.source("ocaml-cohttp-init"),
+            (self.spec.source("ocaml-cohttp-init").path(),
+             self.spec.source("ocaml-cohttp-init").url()),
             ("./SOURCES/ocaml-cohttp/ocaml-cohttp-init", "ocaml-cohttp-init"))
         self.assertEqual(
-            self.spec.source("somewhere/cohttp0.patch"),
+            (self.spec.source("somewhere/cohttp0.patch").path(),
+             self.spec.source("somewhere/cohttp0.patch").url()),
             ("./SOURCES/ocaml-cohttp/cohttp0.patch", "cohttp0.patch"))
 
     def test_source_nonexistent(self):
@@ -110,20 +113,4 @@ class RpmTests(unittest.TestCase):
              ["./RPMS/{machine}/ocaml-cohttp-0.9.8-1.el6.{machine}.rpm",
               "./RPMS/{machine}/" +
               "ocaml-cohttp-devel-0.9.8-1.el6.{machine}.rpm"]]
-        )
-
-    def test_local_sources(self):
-        """Paths to local source files are correct"""
-        self.assertItemsEqual(
-            self.spec.local_sources(),
-            ["ocaml-cohttp-init",
-             "ocaml-cohttp-service"]
-        )
-
-    def test_local_patches(self):
-        """Paths to local patch files are correct"""
-        self.assertItemsEqual(
-            self.spec.local_patches(),
-            ["cohttp0.patch",
-             "cohttp1.patch"]
         )

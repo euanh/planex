@@ -80,6 +80,53 @@ def parse_spec_quietly(path):
             raise
 
 
+class Source(object):
+    """Represents an RPM source file"""
+    def __init__(self, parent, source):
+        self.parent = parent
+        self._url = source[0]
+        self.order = source[1]
+        self.sourcetype = source[2]  # 1 = source, 2 = patch
+
+    def __str__(self):
+        fmt = "Source%d: %s" if self.is_source() else "Patch%d: %s"
+        return fmt % (self.order, self.url())
+
+    def is_local(self):
+        """Returns true if the source URL points to a local file"""
+        return urlparse.urlparse(self._url).netloc == ''
+
+    def is_remote(self):
+        """Returns true if the source URL points to a remote server"""
+        return not self.is_local()
+
+    def is_source(self):
+        """Returns true if the source is a plain source file"""
+        return self.sourcetype == 1
+
+    def is_patch(self):
+        """Returns true if the source is a patch"""
+        return self.sourcetype == 2
+
+    def url(self):
+        """Returns the source's URL"""
+        return self._url
+
+    def path(self):
+        """Returns the local path where RPM expects to find the source"""
+        # RPM only looks at the basename part of the Source URL - the
+        # part after the rightmost /.   We must match this behaviour.
+        #
+        # Examples:
+        #    http://www.example.com/foo/bar.tar.gz -> bar.tar.gz
+        #    http://www.example.com/foo/bar.cgi#/baz.tbz -> baz.tbz
+
+        with rpm_macros(self.parent.macros,
+                        nevra(self.parent.spec.sourceHeader)):
+            return os.path.join(rpm.expandMacro("%_sourcedir"),
+                                os.path.basename(self._url))
+
+
 class Spec(object):
     """Represents an RPM spec file"""
 
@@ -169,28 +216,20 @@ class Spec(object):
         return rpm.expandMacro(os.path.join('%_srcrpmdir', srpmname))
 
     def sources(self):
-        """List all sources defined in the spec file"""
-
-        # RPM only looks at the basename part of the Source URL - the
-        # part after the rightmost /.   We must match this behaviour.
-        #
-        # Examples:
-        #    http://www.example.com/foo/bar.tar.gz -> bar.tar.gz
-        #    http://www.example.com/foo/bar.cgi#/baz.tbz -> baz.tbz
-
-        with rpm_macros(self.macros, nevra(self.spec.sourceHeader)):
-            return [(os.path.join(rpm.expandMacro("%_sourcedir"),
-                                  os.path.basename(url)), url)
-                    for (url, _, _) in reversed(self.spec.sources)]
+        """
+        List all sources defined in the spec file
+        """
+        return [Source(self, source) for source
+                in reversed(self.spec.sources)]
 
     def source(self, target):
         """
         Find the URL from which source should be downloaded
         """
         target_basename = os.path.basename(target)
-        for path, url in self.sources():
-            if os.path.basename(path) == target_basename:
-                return path, url
+        for source in self.sources():
+            if os.path.basename(source.path()) == target_basename:
+                return source
 
         raise KeyError(target_basename)
 
@@ -214,15 +253,3 @@ class Spec(object):
                    if sourcetype == 2]
         patches.append(-1)
         return max(patches)
-
-    def local_sources(self):
-        """List all local sources defined in the spec file"""
-        patch_urls = [urlparse.urlparse(url) for (url, _, sourcetype)
-                      in self.spec.sources if sourcetype == 1]
-        return [url.path for url in patch_urls if url.netloc == '']
-
-    def local_patches(self):
-        """List all local patches defined in the spec file"""
-        patch_urls = [urlparse.urlparse(url) for (url, _, sourcetype)
-                      in self.spec.sources if sourcetype == 2]
-        return [url.path for url in patch_urls if url.netloc == '']
