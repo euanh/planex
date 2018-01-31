@@ -12,6 +12,8 @@ import tempfile
 
 import rpm
 
+from planex.link import Link
+
 
 @contextlib.contextmanager
 def rpm_macros(*macros):
@@ -130,9 +132,13 @@ class Source(object):
 class Spec(object):
     """Represents an RPM spec file"""
 
-    def __init__(self, path, check_package_name=True, defines=None):
+    def __init__(self, path, link=None, check_package_name=True, defines=None):
 
         self.macros = dict(defines) if defines else {}
+        self.path = path
+        self.link = None
+        if link:
+            self.link = Link(link)
 
         # _topdir defaults to $HOME/rpmbuild
         # If present, it needs to be applied once at the beginning
