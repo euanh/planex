@@ -161,11 +161,12 @@ def fetch_source(args):
                             defines=args.define)
 
     try:
-        path, url = spec.source(args.source)
+        source = spec.source(args.source)
     except KeyError as exn:
         sys.exit("%s: No source corresponding to %s" % (sys.argv[0], exn))
 
-    url = urlparse.urlparse(url)
+    url = urlparse.urlparse(source.url())
+    path = source.path()
     if url.scheme in SUPPORTED_URL_SCHEMES:
         fetch_url(url, path, args.retries + 1)
 

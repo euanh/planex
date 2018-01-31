@@ -7,7 +7,6 @@ import argparse
 import os
 import re
 import sys
-import urlparse
 
 import argcomplete
 from planex.cmd.args import common_base_parser, rpm_define_parser
@@ -39,28 +38,26 @@ def build_srpm_from_spec(spec, lnk=None):
     """
     srpmpath = spec.source_package_path()
     print('%s: %s' % (srpmpath, spec.specpath()))
-    for (path, source) in spec.sources():
-        url = urlparse.urlparse(source)
-        if url.scheme in ["http", "https", "file", "ftp"]:
+    for source in spec.sources():
+        if source.is_remote():
             # Source was downloaded to _build/SOURCES
-            print('%s: %s' % (srpmpath, path))
+            print('%s: %s' % (srpmpath, source.path()))
         elif lnk and (lnk.sources is not None or lnk.has_patches):
             # Use sources from patchqueue
             pass
         else:
             # Source is local
-            print('%s: %s' % (srpmpath, "/".join(path.split("/")[1:])))
+            print('%s: %s' % (srpmpath,
+                              "/".join(source.path().split("/")[1:])))
 
 
 def download_rpm_sources(spec):
     """
     Generate rules to download sources
     """
-    for (path, source) in spec.sources():
-        url = urlparse.urlparse(source)
-        if url.scheme in ["http", "https", "file", "ftp"]:
-            # Source can be fetched by fetch
-            print('%s: %s' % (path, spec.specpath()))
+    for source in spec.sources():
+        if source.is_remote():
+            print('%s: %s' % (source.path(), spec.specpath()))
 
 
 def build_rpm_from_srpm(spec):
