@@ -32,7 +32,7 @@ def create_manifest_deps(spec):
                           manifest.get_path(spec.name())))
 
 
-def build_srpm_from_spec(spec, lnk=None):
+def build_srpm_from_spec(spec):
     """
     Generate rules to build SRPM from spec
     """
@@ -42,7 +42,8 @@ def build_srpm_from_spec(spec, lnk=None):
         if source.is_remote():
             # Source was downloaded to _build/SOURCES
             print('%s: %s' % (srpmpath, source.path()))
-        elif lnk and (lnk.sources is not None or lnk.has_patches):
+        elif spec.link and (spec.link.sources is not None
+                            or spec.link.has_patches):
             # Use sources from patchqueue
             pass
         else:
@@ -163,17 +164,17 @@ def main(argv=None):
     args = parse_args_or_exit(argv)
     allspecs = dedupe(args.specs, dedupe_key)
 
+    links = {pkgname(path): path for path in allspecs
+             if path.endswith(".lnk") or path.endswith(".pin")}
+
     try:
-        specs = {pkgname(path): Spec(path, defines=args.define)
+        specs = {pkgname(path): Spec(path, links.get(pkgname(path)),
+                                     defines=args.define)
                  for path in allspecs
                  if path.endswith(".spec")}
     except SpecNameMismatch as exn:
         sys.stderr.write("error: %s\n" % exn.message)
         sys.exit(1)
-
-    links = {pkgname(path): Link(path)
-             for path in allspecs
-             if path.endswith(".lnk") or path.endswith(".pin")}
 
     provides_to_rpm = package_to_rpm_map(specs.values())
 
@@ -185,29 +186,28 @@ def main(argv=None):
     for spec in specs.itervalues():
         print('# %s' % (spec.name()))
 
-        build_srpm_from_spec(spec, links.get(spec.name()))
+        build_srpm_from_spec(spec)
         # Manifest dependencies must come after spec dependencies
         # otherwise manifest.json will be the SRPM's first dependency
         # and will be passed to rpmbuild in the spec position.
         create_manifest_deps(spec)
         if spec.name() in links:
-            link = links[spec.name()]
             srpmpath = spec.source_package_path()
-            print('%s: %s' % (srpmpath, link.linkpath))
-            if link.schema_version == 1:
-                patch_depends('patches', spec, srpmpath, link.linkpath)
-            elif link.schema_version >= 2:
-                patches = link.patch_sources
+            print('%s: %s' % (srpmpath, spec.link.linkpath))
+            if spec.link.schema_version == 1:
+                patch_depends('patches', spec, srpmpath, spec.link.linkpath)
+            elif spec.link.schema_version >= 2:
+                patches = spec.link.patch_sources
                 for patch in patches:
                     patch_url = patches[patch]['URL']
                     print('# %s => %s' % (patch, patch_url))
-                    patch_depends(patch, spec, srpmpath, link.linkpath)
+                    patch_depends(patch, spec, srpmpath, spec.link.linkpath)
 
-                patchqueues = link.patchqueue_sources
+                patchqueues = spec.link.patchqueue_sources
                 for patchqueue in patchqueues:
                     patch_url = patchqueues[patchqueue]['URL']
                     print('# %s => %s' % (patchqueue, patch_url))
-                    patch_depends(patchqueue, spec, srpmpath, link.linkpath)
+                    patch_depends(patchqueue, spec, srpmpath, spec.link.linkpath)
 
         download_rpm_sources(spec)
         build_rpm_from_srpm(spec)
