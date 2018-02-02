@@ -239,6 +239,22 @@ class Spec(object):
 
         raise KeyError(target_basename)
 
+    def patches(self):
+        """
+        List all patches defined in the link file
+        """
+        if self.link.schema_version == 1:
+            return []
+        return self.link.patch_sources
+
+    def patchqueues(self):
+        """
+        List all patchqueues defined in the link file
+        """
+        if self.link.schema_version == 1:
+            return ["patches"]
+        return self.link.patchqueue_sources
+
     def binary_package_paths(self):
         """Return a list of binary packages built by this spec"""
 
