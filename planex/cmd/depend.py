@@ -13,7 +13,6 @@ from planex.cmd.args import common_base_parser, rpm_define_parser
 from planex.util import setup_sigint_handler, dedupe
 from planex.cmd import manifest
 from planex.spec import Spec, SpecNameMismatch
-from planex.link import Link
 
 
 def create_manifest_deps(spec):
@@ -191,23 +190,14 @@ def main(argv=None):
         # otherwise manifest.json will be the SRPM's first dependency
         # and will be passed to rpmbuild in the spec position.
         create_manifest_deps(spec)
-        if spec.name() in links:
+        if spec.link:
             srpmpath = spec.source_package_path()
             print('%s: %s' % (srpmpath, spec.link.linkpath))
-            if spec.link.schema_version == 1:
-                patch_depends('patches', spec, srpmpath, spec.link.linkpath)
-            elif spec.link.schema_version >= 2:
-                patches = spec.link.patch_sources
-                for patch in patches:
-                    patch_url = patches[patch]['URL']
-                    print('# %s => %s' % (patch, patch_url))
-                    patch_depends(patch, spec, srpmpath, spec.link.linkpath)
+            for patch in spec.patches():
+                patch_depends(patch, spec, srpmpath, spec.link.linkpath)
 
-                patchqueues = spec.link.patchqueue_sources
-                for patchqueue in patchqueues:
-                    patch_url = patchqueues[patchqueue]['URL']
-                    print('# %s => %s' % (patchqueue, patch_url))
-                    patch_depends(patchqueue, spec, srpmpath, spec.link.linkpath)
+            for patchqueue in spec.patchqueues():
+                patch_depends(patchqueue, spec, srpmpath, spec.link.linkpath)
 
         download_rpm_sources(spec)
         build_rpm_from_srpm(spec)
