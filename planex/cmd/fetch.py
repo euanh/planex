@@ -94,7 +94,8 @@ def parse_args_or_exit(argv=None):
     parser = argparse.ArgumentParser(description='Download package sources',
                                      parents=[common_base_parser(),
                                               rpm_define_parser()])
-    parser.add_argument('spec_or_link', help='RPM Spec or link file')
+    parser.add_argument('spec', help='RPM Spec')
+    parser.add_argument('link', help='Link file', nargs="?")
     parser.add_argument("source", metavar="SOURCE",
                         help="Source file to fetch")
     parser.add_argument('--retries', '-r',
@@ -156,7 +157,7 @@ def fetch_source(args):
     Download requested source using URL from spec file.
     """
 
-    spec = planex.spec.Spec(args.spec_or_link,
+    spec = planex.spec.Spec(args.spec, link=args.link,
                             check_package_name=args.check_package_names,
                             defines=args.define)
 
@@ -189,7 +190,7 @@ def fetch_via_link(args):
     """
     Parse link file and download patch tarball.
     """
-    link = Link(args.spec_or_link)
+    link = Link(args.link)
 
     if link.schema_version == 1:
         url = urlparse.urlparse(str(link.url))
@@ -217,10 +218,7 @@ def main(argv=None):
     args = parse_args_or_exit(argv)
     setup_logging(args)
 
-    if args.spec_or_link.endswith('.spec'):
-        fetch_source(args)
-    elif args.spec_or_link.endswith('.lnk'):
+    if args.link:
         fetch_via_link(args)
     else:
-        sys.exit("%s: Unsupported file type: %s" % (sys.argv[0],
-                                                    args.spec_or_link))
+        fetch_source(args)

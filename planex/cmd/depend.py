@@ -150,6 +150,7 @@ def patch_depends(patch_name, spec, srpmpath, linkpath):
     """Output the dependencies for a patchset"""
     patchpath = spec.expand_macro('%_sourcedir/{}.tar'.format(patch_name))
     print('%s: %s' % (srpmpath, patchpath))
+    print('%s: %s' % (patchpath, spec.specpath()))
     print('%s: %s' % (patchpath, linkpath))
 
 
