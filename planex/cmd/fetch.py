@@ -13,7 +13,6 @@ import argcomplete
 import pkg_resources
 import pycurl
 
-from planex.link import Link
 from planex.cmd.args import common_base_parser, rpm_define_parser
 from planex.util import run
 from planex.util import setup_logging
@@ -162,14 +161,10 @@ def parse_args_or_exit(argv=None):
     return parser.parse_args(argv)
 
 
-def fetch_source(args):
+def fetch_source(spec, args):
     """
     Download requested source using URL from spec file.
     """
-
-    spec = planex.spec.Spec(args.spec, link=args.link,
-                            check_package_name=args.check_package_names,
-                            defines=args.define)
 
     try:
         source = spec.source(args.source)
@@ -230,11 +225,11 @@ def fetch_url(url, sources, retries):
                  (sys.argv[0], exn.strerror, exn.filename))
 
 
-def fetch_via_link(args):
+def fetch_via_link(spec, args):
     """
     Parse link file and download patch tarball.
     """
-    link = Link(args.link)
+    link = spec.link
 
     if link.schema_version == 1:
         url = urlparse.urlparse(str(link.url))
@@ -262,7 +257,11 @@ def main(argv=None):
     args = parse_args_or_exit(argv)
     setup_logging(args)
 
+    spec = planex.spec.Spec(args.spec, link=args.link,
+                            check_package_name=args.check_package_names,
+                            defines=args.define)
+
     if args.link:
-        fetch_via_link(args)
+        fetch_via_link(spec, args)
     else:
-        fetch_source(args)
+        fetch_source(spec, args)
