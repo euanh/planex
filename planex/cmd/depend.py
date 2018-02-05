@@ -146,12 +146,12 @@ def dedupe_key(path):
     return os.path.basename(re.sub(r"\.pin$", ".lnk", path))
 
 
-def patch_depends(patch_name, spec, srpmpath, linkpath):
+def patch_depends(patch_name, spec, srpmpath):
     """Output the dependencies for a patchset"""
     patchpath = spec.expand_macro('%_sourcedir/{}.tar'.format(patch_name))
     print('%s: %s' % (srpmpath, patchpath))
     print('%s: %s' % (patchpath, spec.specpath()))
-    print('%s: %s' % (patchpath, linkpath))
+    print('%s: %s' % (patchpath, spec.link.linkpath))
 
 
 def main(argv=None):
@@ -195,10 +195,10 @@ def main(argv=None):
             srpmpath = spec.source_package_path()
             print('%s: %s' % (srpmpath, spec.link.linkpath))
             for patch in spec.patches():
-                patch_depends(patch, spec, srpmpath, spec.link.linkpath)
+                patch_depends(patch, spec, srpmpath)
 
             for patchqueue in spec.patchqueues():
-                patch_depends(patchqueue, spec, srpmpath, spec.link.linkpath)
+                patch_depends(patchqueue, spec, srpmpath)
 
         download_rpm_sources(spec)
         build_rpm_from_srpm(spec)
