@@ -35,7 +35,7 @@ class Link(object):
     @property
     def url(self):
         """Return the URL from which to fetch the patchqueue tarball"""
-        return self.link.get('URL', None)
+        return str(self.link.get('URL', None))
 
     @property
     def commitish(self):
