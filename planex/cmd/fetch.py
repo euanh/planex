@@ -11,7 +11,7 @@ import urlparse
 
 import argcomplete
 import pkg_resources
-import pycurl
+from urlgrabber.grabber import URLGrabber, URLGrabError
 
 from planex.link import Link
 from planex.cmd.args import common_base_parser, rpm_define_parser
@@ -35,37 +35,6 @@ SUPPORTED_EXT_TO_MIME = {
 }
 
 SUPPORTED_URL_SCHEMES = ["http", "https", "file", "ftp"]
-
-
-def curl_get(url_string, out_file):
-    """
-    Fetch the contents of url and store to file represented by out_file
-    """
-    curl = pycurl.Curl()
-
-    # General options
-    useragent = "planex-fetch/%s" % pkg_resources.require("planex")[0].version
-    curl.setopt(pycurl.USERAGENT, useragent)
-    curl.setopt(pycurl.FOLLOWLOCATION, True)
-    curl.setopt(pycurl.MAXREDIRS, 5)
-    curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-    curl.setopt(pycurl.TIMEOUT, 300)
-    curl.setopt(pycurl.FAILONERROR, True)
-
-    # Cribbed from /usr/lib64/python2.6/site-packages/curl/__init__.py
-    curl.setopt(pycurl.SSL_VERIFYHOST, 2)
-    curl.setopt(pycurl.COOKIEFILE, "/dev/null")
-    curl.setopt(pycurl.NETRC, 1)
-    # If we use threads, we should also set NOSIGNAL and ignore SIGPIPE
-
-    # Set URL to fetch and file to which to write the response
-    curl.setopt(pycurl.URL, str(url_string))
-    curl.setopt(pycurl.WRITEDATA, out_file)
-
-    try:
-        curl.perform()
-    finally:
-        curl.close()
 
 
 def best_effort_file_verify(path):
@@ -108,47 +77,30 @@ def parse_args_or_exit(argv=None):
     return parser.parse_args(argv)
 
 
-def fetch_http(url, filename, retries):
-    """
-    Download the file at url and store it as filename
-    """
-
-    while True:
-        retries -= 1
-        try:
-            url_string = urlparse.urlunparse(url)
-            logging.debug("Fetching %s to %s", url_string, filename)
-
-            tmp_filename = filename + "~"
-            with open(tmp_filename, "wb") as tmp_file:
-                curl_get(url_string, tmp_file)
-                best_effort_file_verify(tmp_filename)
-                shutil.move(tmp_filename, filename)
-                # Write an origin file for tracking.
-                with open('{0}.origin'.format(filename), 'w') as origin_file:
-                    origin_file.write('{0}\n'.format(url_string))
-                return
-
-        except pycurl.error as exn:
-            logging.debug(exn.args[1])
-            if not retries > 0:
-                raise
-
-
-def fetch_url(url, source, retries):
+def fetch_url(url, filename, retries):
     """Fetch from specified URL"""
+    planex_version = pkg_resources.require("planex")[0].version
+    user_agent = "planex-fetch/%s" % planex_version
     try:
-        fetch_http(url, source, retries)
+        # Using urlgrab() sometimes results in a 0 byte file;
+        # urlread() anfd shutil.copyfileobj() are more reliable
+        source = URLGrabber().urlopen(url, retry=retries,
+                                      user_agent=user_agent)
+        with open(filename, "wb") as destination:
+            shutil.copyfileobj(source, destination)
 
-    except pycurl.error as exn:
-        # Curl download failed
+    except URLGrabError as exn:
+        # Download failed
         sys.exit("%s: Failed to fetch %s: %s" %
-                 (sys.argv[0], urlparse.urlunparse(url), exn.args[1]))
+                 (sys.argv[0], url, exn.strerror))
 
     except IOError as exn:
         # IO error saving source file
         sys.exit("%s: %s: %s" %
                  (sys.argv[0], exn.strerror, exn.filename))
+
+    finally:
+        source.close()
 
 
 def fetch_source(args):
@@ -165,11 +117,11 @@ def fetch_source(args):
     except KeyError as exn:
         sys.exit("%s: No source corresponding to %s" % (sys.argv[0], exn))
 
-    url = urlparse.urlparse(url)
-    if url.scheme in SUPPORTED_URL_SCHEMES:
+    parsed = urlparse.urlparse(url)
+    if parsed.scheme in SUPPORTED_URL_SCHEMES:
         fetch_url(url, path, args.retries + 1)
 
-    elif url.scheme == '' and os.path.dirname(url.path) == '':
+    elif parsed.scheme == '' and os.path.dirname(parsed.path) == '':
         if not os.path.exists(path):
             sys.exit("%s: Source not found: %s" % (sys.argv[0], path))
 
@@ -181,7 +133,7 @@ def fetch_source(args):
 
     else:
         sys.exit("%s: Unsupported url scheme %s" %
-                 (sys.argv[0], url.scheme))
+                 (sys.argv[0], parsed.scheme))
 
 
 def fetch_via_link(args):
@@ -191,21 +143,18 @@ def fetch_via_link(args):
     link = Link(args.spec_or_link)
 
     if link.schema_version == 1:
-        url = urlparse.urlparse(str(link.url))
-        fetch_url(url, args.source, args.retries + 1)
+        fetch_url(link.url, args.source, args.retries + 1)
     else:
         target, _ = os.path.splitext(os.path.basename(args.source))
         patch_urls = link.patch_sources
         if target in patch_urls:
-            patch = patch_urls.get(target)
-            url = urlparse.urlparse(patch['URL'])
-            fetch_url(url, args.source, args.retries + 1)
+            patch_url = patch_urls.get(target)['URL']
+            fetch_url(patch_url, args.source, args.retries + 1)
 
         patchqueues = link.patchqueue_sources
         if target in patchqueues:
-            patchqueue = patchqueues.get(target)
-            url = urlparse.urlparse(patchqueue['URL'])
-            fetch_url(url, args.source, args.retries + 1)
+            patchqueue_url = patchqueues.get(target)['URL']
+            fetch_url(patchqueue_url, args.source, args.retries + 1)
 
 
 def main(argv=None):
