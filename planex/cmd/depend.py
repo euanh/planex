@@ -55,18 +55,13 @@ def download_rpm_sources(spec):
     """
     Generate rules to download sources
     """
-    for source in spec.sources():
+    for source in spec.resources():
         if source.is_remote():
-            print('%s: %s' % (source.path(), spec.specpath()))
-
-    if spec.link:
-        srpmpath = spec.source_package_path()
-        print('%s: %s' % (srpmpath, spec.link.linkpath))
-        for patch in spec.patches():
-            patch_depends(patch, spec, srpmpath)
-
-        for patchqueue in spec.patchqueues():
-            patch_depends(patchqueue, spec, srpmpath)
+            # this if is a hack to prevent pins being sent to fetch
+            if not (spec.link and spec.link.linkpath.endswith(".pin")):
+                print('%s: %s' % (source.path, spec.specpath()))
+            if spec.link:
+                print('%s: %s' % (source.path, spec.link.linkpath))
 
 
 def build_rpm_from_srpm(spec):

@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import contextlib
+from collections import namedtuple
 import os
 import re
 import urlparse
@@ -110,6 +111,11 @@ class Source(object):
         """Returns true if the source is a patch"""
         return self.sourcetype == 2
 
+    def name(self):
+        """Returns the source's name"""
+        fmt = "Source%d" if self.is_source() else "Patch%d"
+        return fmt % self.order
+
     def url(self):
         """Returns the source's URL"""
         return self._url
@@ -127,6 +133,65 @@ class Source(object):
                         nevra(self.parent.spec.sourceHeader)):
             return os.path.join(rpm.expandMacro("%_sourcedir"),
                                 os.path.basename(self._url))
+
+
+class File(namedtuple("File", "url path parent")):
+    def is_local(self):
+        """Returns true if the source URL points to a local file"""
+        return urlparse.urlparse(self.url).netloc == ''
+
+    def is_remote(self):
+        """Returns true if the source URL points to a remote server"""
+        return not self.is_local()
+
+
+class Archive(namedtuple("Archive", "url name parent")):
+    def is_local(self):
+        """Returns true if the source URL points to a local file"""
+        return urlparse.urlparse(self.url).netloc == ''
+
+    def is_remote(self):
+        """Returns true if the source URL points to a remote server"""
+        return not self.is_local()
+
+    @property
+    def path(self):
+        """Returns the local path where RPM expects to find the source"""
+        # RPM only looks at the basename part of the Source URL - the
+        # part after the rightmost /.   We must match this behaviour.
+        #
+        # Examples:
+        #    http://www.example.com/foo/bar.tar.gz -> bar.tar.gz
+        #    http://www.example.com/foo/bar.cgi#/baz.tbz -> baz.tbz
+
+        with rpm_macros(self.parent.macros,
+                        nevra(self.parent.spec.sourceHeader)):
+            return os.path.join(rpm.expandMacro("%_sourcedir"),
+                                self.name)
+
+class Patchqueue(namedtuple("Patchqueue", "url name parent")):
+    def is_local(self):
+        """Returns true if the source URL points to a local file"""
+        return urlparse.urlparse(self.url).netloc == ''
+
+    def is_remote(self):
+        """Returns true if the source URL points to a remote server"""
+        return not self.is_local()
+
+    @property
+    def path(self):
+        """Returns the local path where RPM expects to find the source"""
+        # RPM only looks at the basename part of the Source URL - the
+        # part after the rightmost /.   We must match this behaviour.
+        #
+        # Examples:
+        #    http://www.example.com/foo/bar.tar.gz -> bar.tar.gz
+        #    http://www.example.com/foo/bar.cgi#/baz.tbz -> baz.tbz
+
+        with rpm_macros(self.parent.macros,
+                        nevra(self.parent.spec.sourceHeader)):
+            return os.path.join(rpm.expandMacro("%_sourcedir"),
+                                self.name)
 
 
 class Spec(object):
@@ -221,6 +286,19 @@ class Spec(object):
         srpmname = self.spec.sourceHeader['nvr'] + ".src.rpm"
         return rpm.expandMacro(os.path.join('%_srcrpmdir', srpmname))
 
+    def resources(self):
+        files = {source.name(): File(source.url(), source.path(), self) for source
+                 in self.sources()}
+        if self.link:
+            archives = {name: Archive(source['URL'], name, self) for (name, source)
+                        in self.patches().items()}
+            patchqueues = {name: Patchqueue(source['URL'], name, self) for (name, source)
+                           in self.patchqueues().items()}
+        else:
+            archives = {}
+            patchqueues = {}
+        return files.values() + archives.values() + patchqueues.values()
+
     def sources(self):
         """
         List all sources defined in the spec file
@@ -244,7 +322,7 @@ class Spec(object):
         List all patches defined in the link file
         """
         if self.link.schema_version == 1:
-            return []
+            return {}
         return self.link.patch_sources
 
     def patchqueues(self):
@@ -252,7 +330,9 @@ class Spec(object):
         List all patchqueues defined in the link file
         """
         if self.link.schema_version == 1:
-            return ["patches"]
+            return {"patches.tar":
+                    {"URL": self.link.url,
+                     "patchqueue": self.link.patchqueue}}
         return self.link.patchqueue_sources
 
     def binary_package_paths(self):
