@@ -59,6 +59,15 @@ def download_rpm_sources(spec):
         if source.is_remote():
             print('%s: %s' % (source.path(), spec.specpath()))
 
+    if spec.link:
+        srpmpath = spec.source_package_path()
+        print('%s: %s' % (srpmpath, spec.link.linkpath))
+        for patch in spec.patches():
+            patch_depends(patch, spec, srpmpath)
+
+        for patchqueue in spec.patchqueues():
+            patch_depends(patchqueue, spec, srpmpath)
+
 
 def build_rpm_from_srpm(spec):
     """
@@ -191,15 +200,6 @@ def main(argv=None):
         # otherwise manifest.json will be the SRPM's first dependency
         # and will be passed to rpmbuild in the spec position.
         create_manifest_deps(spec)
-        if spec.link:
-            srpmpath = spec.source_package_path()
-            print('%s: %s' % (srpmpath, spec.link.linkpath))
-            for patch in spec.patches():
-                patch_depends(patch, spec, srpmpath)
-
-            for patchqueue in spec.patchqueues():
-                patch_depends(patchqueue, spec, srpmpath)
-
         download_rpm_sources(spec)
         build_rpm_from_srpm(spec)
         if args.buildrequires:
